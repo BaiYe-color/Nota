@@ -1,0 +1,16 @@
+{
+  "id": "binary-search-slides",
+  "source_name": "synthetic-slides.pptx",
+  "source_path": "work/synthetic-slides.pptx",
+  "material_type": "lecture_slides",
+  "synthetic": true,
+  "review_notes": "检查 PPT 标题、正文、表格和讲者备注能否共同进入笔记。",
+  "required_claims": [
+    {"id": "sorted", "all": ["sorted|有序|需排序|必须排序", "required|必须|需"]},
+    {"id": "speaker-note", "all": ["边界条件|boundary conditions", "不能|不要|not"]},
+    {"id": "complexity-table", "all": ["Linear|线性", "O\\(n\\)", "Binary|二分", "O\\(log\\s*n\\)"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [],
+  "allowed_omissions": ["默认 PowerPoint 版式"]
+}

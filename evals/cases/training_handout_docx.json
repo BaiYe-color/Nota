@@ -1,0 +1,20 @@
+{
+  "id": "training-handout-docx",
+  "source_name": "training-handout.docx",
+  "source_path": "evals/fixtures/training-handout.docx",
+  "material_type": "docx",
+  "synthetic": true,
+  "review_notes": "检查训练/测试边界、配置表和指标要求。",
+  "required_claims": [
+    {"id": "split", "all": ["8\\s*[:：]\\s*2", "训练集", "测试集"]},
+    {"id": "no-leakage", "all": ["测试集", "不得|不能", "训练"]},
+    {"id": "config", "all": ["Adam", "0\\.001", "50"]},
+    {"id": "metrics", "all": ["准确率", "宏平均\\s*F1|macro.?F1"]}
+  ],
+  "forbidden_pairs": [
+    {"id": "test-not-training", "left": "测试集", "right": "可以参与参数训练|用于参数训练", "window": 80,
+     "allow_if": ["常见错误.{0,30}测试集用于参数训练", "测试集用于参数训练.{0,20}(?:违反|错误)"]}
+  ],
+  "visual_expectations": [],
+  "allowed_omissions": ["Word 默认样式"]
+}

@@ -1,0 +1,45 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+
+# ---- Secrets (object/.env holds real API keys; .env.example is the committed template) ----
+.env
+
+# ---- Runtime data (regenerated at launch) ----
+object/data/
+object/outputs/
+object/models/
+object/object/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+server.lock
+
+# ---- Windows shortcuts (local; use *.cmd / start.cmd instead) ----
+Nota.lnk
+Nota.lnk.bak
+
+# ---- Dev scratch & large test inputs ----
+work/
+tmp/
+test/
+
+# ---- Eval generated fixtures & per-case runtime data ----
+evals/*-data/
+evals/fixtures/
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

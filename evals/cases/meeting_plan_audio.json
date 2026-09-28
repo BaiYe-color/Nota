@@ -1,0 +1,21 @@
+{
+  "id": "meeting-plan-audio",
+  "source_name": "audio-meeting-test.wav",
+  "source_path": "work/audio-meeting-test.wav",
+  "material_type": "meeting_audio",
+  "synthetic": true,
+  "review_notes": "双说话人合成会议，检查数字、否定、决定、建议和截止时间。",
+  "required_claims": [
+    {"id": "decision", "all": ["内部测试", "暂时不公开|不公开发布"]},
+    {"id": "budget", "all": ["3000|三千", "不是.*3万|不是.*三万"]},
+    {"id": "action", "all": ["小陈", "10\\s*月\\s*8\\s*日", "文档上传测试"]},
+    {"id": "acceptance", "all": ["同名文件", "不能混用", "失败.*章节.*显示"]},
+    {"id": "undecided", "all": ["手机应用", "没有立项|未决定", "会议时间.*未定|时间.*没有确定"]}
+  ],
+  "forbidden_pairs": [
+    {"id": "budget-not-30000", "left": "预算", "right": "30000|三万", "window": 80},
+    {"id": "mobile-not-decision", "left": "手机应用", "right": "已经决定|已经立项", "window": 100}
+  ],
+  "visual_expectations": [],
+  "allowed_omissions": ["合成录音免责声明", "寒暄"]
+}

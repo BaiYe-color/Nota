@@ -1,0 +1,3 @@
+# Optional: legacy .doc/.ppt conversion also requires installed Microsoft Office.
+comtypes>=1.4,<2; sys_platform == "win32"
+docx2pdf>=0.1.8,<1; sys_platform == "win32"

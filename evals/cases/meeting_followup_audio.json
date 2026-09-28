@@ -1,0 +1,17 @@
+{
+  "id": "meeting-followup-audio",
+  "source_name": "tts-1.wav",
+  "source_path": "work/tts-1.wav",
+  "material_type": "meeting_audio",
+  "synthetic": true,
+  "review_notes": "单段跟进发言，检查承诺、术语误识别风险和未决事项。",
+  "required_claims": [
+    {"id": "report", "all": ["小陈", "10\\s*月\\s*8\\s*日", "测试报告"]},
+    {"id": "mixed-language", "all": ["中文", "英文", "API", "Markdown"]},
+    {"id": "proposal", "all": ["手机应用", "建议", "没有决定|尚未决定"]},
+    {"id": "next-meeting", "all": ["下次会议", "没有确定|未定"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [],
+  "allowed_omissions": ["自我介绍"]
+}

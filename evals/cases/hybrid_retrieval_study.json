@@ -1,0 +1,19 @@
+{
+  "id": "hybrid-retrieval-study",
+  "source_name": "hybrid-retrieval-study.pdf",
+  "source_path": "evals/fixtures/hybrid-retrieval-study.pdf",
+  "material_type": "paper",
+  "synthetic": true,
+  "review_notes": "受控论文样本，专门检查实验对象、指标、基线、时延和局限是否被正确归属。",
+  "required_claims": [
+    {"id": "method", "all": ["HybridRank", "BM25", "dense|稠密"]},
+    {"id": "dataset", "all": ["1[,，]?200|1200", "Chinese|中文", "queries|查询"]},
+    {"id": "result", "all": ["MRR@10", "0\\.412", "0\\.386"]},
+    {"id": "weights", "all": ["0\\.35", "0\\.65"]},
+    {"id": "latency", "all": ["42\\s*ms|42\\s*毫秒"]},
+    {"id": "limitation", "all": ["单一|one", "中文|Chinese", "多语言|multilingual"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [],
+  "allowed_omissions": ["作者信息", "完整表格排版"]
+}

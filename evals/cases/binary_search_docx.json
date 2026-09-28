@@ -1,0 +1,18 @@
+{
+  "id": "binary-search-docx",
+  "source_name": "synthetic-document.docx",
+  "source_path": "work/synthetic-document.docx",
+  "material_type": "docx",
+  "synthetic": true,
+  "review_notes": "检查 Word 段落、表格和内嵌流程图的联合提取。",
+  "required_claims": [
+    {"id": "precondition", "all": ["sorted|有序|排序", "required|必须"]},
+    {"id": "absent", "all": ["absent|不存在", "-1"]},
+    {"id": "complexity", "all": ["Binary search|二分查找", "O\\(log\\s*n\\)"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [
+    {"id": "workflow", "source_any": ["CHECK|COMPARE|SEARCH", "O\\(log\\s*n\\)"], "chapter_any": ["二分|Binary"]}
+  ],
+  "allowed_omissions": ["Word 默认样式"]
+}

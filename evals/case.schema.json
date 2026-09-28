@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nota.local/schemas/evaluation-case.json",
+  "title": "Nota evaluation case",
+  "type": "object",
+  "required": ["id", "source_name", "source_path", "material_type", "synthetic"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "source_name": {"type": "string", "minLength": 1},
+    "source_path": {"type": "string", "minLength": 1},
+    "material_type": {
+      "enum": ["paper", "scanned_pdf", "lecture_slides", "docx", "meeting_audio"]
+    },
+    "synthetic": {"type": "boolean"},
+    "review_notes": {"type": "string"},
+    "required_claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "all"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "all": {"type": "array", "items": {"type": "string"}},
+          "any": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "forbidden_pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "left", "right"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "left": {"type": "string", "minLength": 1},
+          "right": {"type": "string", "minLength": 1},
+          "window": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "visual_expectations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source_any", "chapter_any"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "source_any": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "chapter_any": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        }
+      }
+    },
+    "allowed_omissions": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "project-planning-slides",
+  "source_name": "project-planning-slides.pptx",
+  "source_path": "evals/fixtures/project-planning-slides.pptx",
+  "material_type": "lecture_slides",
+  "synthetic": true,
+  "review_notes": "检查决定、建议、日期、预算、负责人和百分比是否保留。",
+  "required_claims": [
+    {"id": "pilot", "all": ["10\\s*月\\s*8\\s*日", "内部试点", "暂不公开"]},
+    {"id": "budget", "all": ["3[,，]?000|3000", "预算"]},
+    {"id": "metrics", "all": ["事实召回率", "95%", "审校误报率", "5%"]},
+    {"id": "owner", "all": ["负责人", "小陈"]},
+    {"id": "proposal", "all": ["手机应用", "建议", "没有立项|未立项"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [],
+  "allowed_omissions": ["默认 PowerPoint 版式"]
+}

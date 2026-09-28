@@ -1,0 +1,67 @@
+{
+  "id": "attention-is-all-you-need",
+  "source_name": "Attention Is All You Need.pdf",
+  "source_path": "test/Attention Is All You Need.pdf",
+  "material_type": "paper",
+  "synthetic": false,
+  "review_notes": "人工对照原论文标注核心架构、训练配置、翻译结果和关键图表。",
+  "required_claims": [
+    {
+      "id": "scaled-dot-product",
+      "all": ["QK\\^?T", "sqrt\\{?d_?k\\}?|√d[_ ]?k|\\\\sqrt\\{d_k\\}"],
+      "any": ["softmax", "缩放点积"]
+    },
+    {
+      "id": "multi-head-eight",
+      "all": ["多头|Multi.?Head", "8\\s*个?头|h\\s*=\\s*8"]
+    },
+    {
+      "id": "position-encoding",
+      "all": ["位置编码", "正弦|sin", "余弦|cos"]
+    },
+    {
+      "id": "complexity",
+      "all": ["自注意力", "O\\(n.?2.?d\\)|O\\(n².?d\\)|n\\^2.?d|n².?d"]
+    },
+    {
+      "id": "optimizer",
+      "all": ["Adam", "0\\.9", "0\\.98", "4000"]
+    },
+    {
+      "id": "translation-results",
+      "all": ["28\\.4", "41\\.8", "BLEU"]
+    }
+  ],
+  "forbidden_pairs": [
+    {
+      "id": "bleu-41-8-not-en-de",
+      "left": "41\\.8",
+      "right": "英译德|English.?to.?German|EN.?DE",
+      "window": 24
+    },
+    {
+      "id": "bleu-28-4-not-en-fr",
+      "left": "28\\.4",
+      "right": "英译法|English.?to.?French|EN.?FR",
+      "window": 24
+    }
+  ],
+  "visual_expectations": [
+    {
+      "id": "architecture-figure",
+      "source_any": ["Figure 1", "Transformer.*架构", "编码器.*解码器"],
+      "chapter_any": ["架构", "编码器", "解码器"]
+    },
+    {
+      "id": "attention-figure",
+      "source_any": ["Figure 2", "Scaled Dot-Product Attention"],
+      "chapter_any": ["注意力", "Attention"]
+    },
+    {
+      "id": "experiment-table",
+      "source_any": ["Table 3", "\\bPPL\\b", "\\bBLEU\\b"],
+      "chapter_any": ["实验", "性能", "变体"]
+    }
+  ],
+  "allowed_omissions": ["作者单位", "致谢", "完整参考文献列表"]
+}

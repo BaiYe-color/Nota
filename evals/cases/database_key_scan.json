@@ -1,0 +1,19 @@
+{
+  "id": "database-key-scan",
+  "source_name": "database-key-scan.pdf",
+  "source_path": "evals/fixtures/database-key-scan.pdf",
+  "material_type": "scanned_pdf",
+  "synthetic": true,
+  "review_notes": "纯图片 PDF，检查组合键、函数依赖和第二范式结论。",
+  "required_claims": [
+    {"id": "schema", "all": ["Enrollment", "student_id", "course_id", "grade"]},
+    {"id": "candidate-key", "all": ["候选键|candidate key", "student_id", "course_id", "共同|组合|composite"]},
+    {"id": "dependency", "all": ["grade", "完整.*组合键|full.*key", "不存在.*部分依赖|no partial dependency"]},
+    {"id": "normal-form", "all": ["第二范式|2NF"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [
+    {"id": "scan-page", "source_any": ["Enrollment", "第二范式|2NF"], "chapter_any": ["关系|候选键|范式"]}
+  ],
+  "allowed_omissions": ["页面装饰"]
+}

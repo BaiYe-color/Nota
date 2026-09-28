@@ -1,0 +1,20 @@
+{
+  "id": "binary-search-scan",
+  "source_name": "binary-search-scan.pdf",
+  "source_path": "evals/fixtures/binary-search-scan.pdf",
+  "material_type": "scanned_pdf",
+  "synthetic": true,
+  "review_notes": "纯图片 PDF，检查 OCR 对数组、边界、索引、负号和复杂度的保留。",
+  "required_claims": [
+    {"id": "precondition", "all": ["升序|sorted", "二分|binary"]},
+    {"id": "example", "all": ["2[,， ]+4[,， ]+8[,， ]+16[,， ]+32", "索引.*3|index.*3"]},
+    {"id": "boundary", "all": ["low\\s*=\\s*0", "high\\s*=\\s*n\\s*-\\s*1"]},
+    {"id": "absent", "all": ["不存在|absent", "-1"]},
+    {"id": "complexity", "all": ["O\\(log\\s*n\\)"]}
+  ],
+  "forbidden_pairs": [],
+  "visual_expectations": [
+    {"id": "scan-page", "source_any": ["升序|sorted", "O\\(log\\s*n\\)"], "chapter_any": ["二分|binary"]}
+  ],
+  "allowed_omissions": ["页面装饰"]
+}

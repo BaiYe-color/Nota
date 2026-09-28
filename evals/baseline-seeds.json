@@ -1,0 +1,12 @@
+{
+  "attention-is-all-you-need": {
+    "data_root": "object/data",
+    "note_id": "dfbc24d902ee4cc69217aca62f3eb396",
+    "version": 3
+  },
+  "meeting-plan-audio": {
+    "data_root": "object/data",
+    "note_id": "01c86817e4a54831b48babb3a4e59c4f",
+    "version": 1
+  }
+}
