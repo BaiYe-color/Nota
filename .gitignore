@@ -19,6 +19,7 @@ object/data/
 object/outputs/
 object/models/
 object/object/
+runtime/
 *.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm

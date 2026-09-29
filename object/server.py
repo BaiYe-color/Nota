@@ -22,6 +22,13 @@ from router import Router
 
 ROOT=Path(__file__).parent
 
+def _allowed_hosts():
+    """Read trusted Host headers without weakening the localhost default."""
+    configured=os.getenv('NOTA_ALLOWED_HOSTS','').strip()
+    if configured:
+        return [host.strip() for host in configured.split(',') if host.strip()]
+    return ['127.0.0.1','localhost','testserver']
+
 def create_app(data_root=None):
     store=Store(data_root or os.getenv('NOTA_DATA_DIR',ROOT/'data'))
     router=Router(store.root)
@@ -44,7 +51,7 @@ def create_app(data_root=None):
         finally: loop.set_exception_handler(previous_handler)
     app=FastAPI(title='Nota',lifespan=lifespan)
     app.state.store=store; app.state.service=service; app.state.router=router
-    app.add_middleware(TrustedHostMiddleware,allowed_hosts=['127.0.0.1','localhost','testserver'])
+    app.add_middleware(TrustedHostMiddleware,allowed_hosts=_allowed_hosts())
 
     @app.middleware('http')
     async def same_origin(request,call_next):
@@ -65,7 +72,14 @@ def create_app(data_root=None):
 
     @app.get('/api/health')
     def health():
-        return {'status':'ok','version':PIPELINE_VERSION,'configured':router.public()}
+        try:
+            probe=store.root/'.healthcheck'
+            probe.write_text('ok',encoding='ascii'); probe.unlink(missing_ok=True)
+            storage='ok'
+        except OSError:
+            storage='unavailable'
+        return {'status':'ok' if storage=='ok' else 'degraded','version':PIPELINE_VERSION,
+                'storage':storage,'configured':router.public()}
 
     @app.post('/api/upload')
     async def upload(files:list[UploadFile]=File(...)):
@@ -219,4 +233,5 @@ def create_app(data_root=None):
 app=create_app()
 if __name__=='__main__':
     import uvicorn
-    uvicorn.run(app,host='127.0.0.1',port=int(os.getenv('NOTA_PORT','7860')))
+    uvicorn.run(app,host=os.getenv('NOTA_HOST','127.0.0.1'),port=int(os.getenv('NOTA_PORT','7860')),
+                proxy_headers=os.getenv('NOTA_PROXY_HEADERS','0')=='1')

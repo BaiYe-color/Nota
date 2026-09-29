@@ -1,0 +1,16 @@
+.git
+.venv
+.pytest_cache
+object/data
+object/.env
+deploy/.env
+runtime
+test
+work
+tmp
+__pycache__
+*.py[cod]
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+Nota.lnk

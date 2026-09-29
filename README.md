@@ -114,6 +114,63 @@ PARAFORMER_MODEL=paraformer-v2
 - 浏览器不会读取或显示保存后的 API Key。模型路由设置仅保存在本机后端的数据目录中。
 - 发送给模型服务商的内容取决于任务：文本与结构化片段会发送给文本模型；需要视觉理解时会发送对应页面或图像；录音会发送给所配置的 ASR 服务。
 
+## 个人服务器部署
+
+这一部署方式面向**单个受信任用户**：仍使用 SQLite 和本地文件目录，不包含账户注册或多人数据隔离。部署前请确保服务器开放 TCP `80`、`443`，并将域名的 A/AAAA 记录指向服务器。
+
+服务器建议从 4 核 CPU、8 GB 内存、80 GB SSD 起步；模型推理与转写使用外部 API，不需要 GPU。
+
+```bash
+git clone https://github.com/BaiYe-color/Nota.git
+cd Nota
+cp deploy/.env.example deploy/.env
+# 编辑 deploy/.env：填写域名、模型密钥与强密码的哈希
+mkdir -p runtime/data runtime/backups runtime/caddy/data runtime/caddy/config
+# 让容器内的非 root Nota 账户可以写入持久化数据目录
+sudo chown -R 10001:10001 runtime/data runtime/backups
+docker compose run --rm caddy caddy hash-password --plaintext '换成一条长密码'
+# 将输出复制为 deploy/.env 中的 NOTA_BASIC_AUTH_HASH
+docker compose up -d --build
+docker compose ps
+```
+
+`Caddyfile` 会自动申请和续期 HTTPS 证书，并以 Basic Auth 保护整个站点。不要移除这层访问保护，也不要把 `deploy/.env`、`runtime/` 或备份文件提交到 Git。
+
+查看服务日志：
+
+```bash
+docker compose logs -f app
+docker compose logs -f caddy
+```
+
+### 备份与清理
+
+运行以下命令会在 `runtime/backups/` 创建包含 SQLite 快照、上传原件、导出文件和模型路由配置的压缩备份：
+
+```bash
+chmod +x deploy/backup.sh deploy/cleanup.sh
+./deploy/backup.sh
+```
+
+建议每天运行一次备份，并将备份复制到服务器之外的加密存储。备份包含模型路由配置和材料原件，应按敏感数据保管。
+
+`maintenance` 容器会在启动后立即清理一次，之后默认每 24 小时执行。它只删除旧缓存和旧导出文件，**不会删除上传原件、笔记或数据库**；此外会把缓存与导出文件的合计容量控制在默认 4 GB 内，优先清理最旧的缓存，再清理最旧导出文件。可在 `deploy/.env` 调整这些值。
+
+仍可随时手动清理：
+
+```bash
+# 先预览
+./deploy/cleanup.sh --dry-run
+# 执行清理；默认缓存保留 14 天、导出保留 30 天
+./deploy/cleanup.sh
+```
+
+备份仍建议加入服务器的 cron，例如每天凌晨 03:10 运行：
+
+```cron
+10 3 * * * cd /srv/Nota && ./deploy/backup.sh >> runtime/backup.log 2>&1
+```
+
 ## 项目结构
 
 ```text

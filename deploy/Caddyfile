@@ -1,0 +1,22 @@
+{$NOTA_DOMAIN} {
+    encode zstd gzip
+
+    # Personal-server login wall. Generate NOTA_BASIC_AUTH_HASH with:
+    # docker compose run --rm caddy caddy hash-password --plaintext 'your-password'
+    basic_auth {
+        {$NOTA_BASIC_AUTH_USER} {$NOTA_BASIC_AUTH_HASH}
+    }
+
+    request_body {
+        max_size {$NOTA_MAX_UPLOAD_MB}MB
+    }
+
+    reverse_proxy app:7860
+
+    header {
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        X-Frame-Options "DENY"
+        -Server
+    }
+}
