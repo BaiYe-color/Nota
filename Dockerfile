@@ -4,14 +4,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN apt-get update \
+RUN sed -i \
+        -e 's|http://deb.debian.org/debian|http://mirrors.ustc.edu.cn/debian|g' \
+        -e 's|http://deb.debian.org/debian-security|http://mirrors.ustc.edu.cn/debian-security|g' \
+        /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=5 update \
     && apt-get install -y --no-install-recommends \
         pandoc \
         texlive-xetex \
         texlive-lang-chinese \
+        texlive-fonts-recommended \
         fonts-noto-core \
         fonts-noto-cjk \
-    && fc-cache -f \
+        lmodern \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
