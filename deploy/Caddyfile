@@ -16,7 +16,8 @@
     header {
         X-Content-Type-Options "nosniff"
         Referrer-Policy "no-referrer"
-        X-Frame-Options "DENY"
+        # Original-source previews are same-origin iframes inside Nota.
+        X-Frame-Options "SAMEORIGIN"
         -Server
     }
 }
