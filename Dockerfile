@@ -6,7 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
+ARG PIP_PRIMARY_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG PIP_FALLBACK_INDEX_URL=https://pypi.org/simple
+RUN (pip install --no-cache-dir --index-url "$PIP_PRIMARY_INDEX_URL" -r requirements.txt \
+        || pip install --no-cache-dir --index-url "$PIP_FALLBACK_INDEX_URL" -r requirements.txt) \
     && addgroup --system --gid 10001 nota \
     && adduser --system --uid 10001 --ingroup nota --home /app nota
 
