@@ -3,7 +3,11 @@ setlocal
 cd /d "%~dp0"
 set "NOTA_URL=http://127.0.0.1:7860/"
 
-if not exist ".venv\Scripts\python.exe" (
+set "NEED_SETUP=0"
+if not exist ".venv\Scripts\python.exe" set "NEED_SETUP=1"
+if exist ".venv\Scripts\python.exe" ".venv\Scripts\python.exe" -V >nul 2>nul
+if errorlevel 1 set "NEED_SETUP=1"
+if "%NEED_SETUP%"=="1" (
   call "%~dp0setup.cmd"
   if errorlevel 1 exit /b 1
 )

@@ -1,108 +1,172 @@
 # Nota
 
-有来源、可修订的本地笔记工作台。上传 PDF / Word / PPT / 图片 / 录音 / 文本，自动生成可追溯来源、可修订、可导出的课程笔记与会议纪要。
+**把材料变成可核对、可修订、可导出的知识笔记。**
 
-> 单人本地应用，绑定 `127.0.0.1`。生成过程会把所选材料发送到你配置的模型服务商（OpenAI 兼容接口 / DeepSeek / 阿里云百炼）。
+Nota 是一个本地运行的笔记工作台。它接收 PDF、Word、PPT、图片、文本和录音，将材料拆成带来源定位的证据块，再生成课程笔记、论文阅读笔记或会议纪要。笔记可以继续编辑、局部 AI 修订、恢复历史版本，并导出为 HTML、PDF、Markdown 或逐字稿。
 
-## 功能
+> Nota 只监听 `127.0.0.1`，不会作为公网服务启动。模型处理与录音转写仍会把相应材料发送到你在本机配置的第三方模型服务。
 
-- **多材料组合**：PDF、DOCX、PPTX、图片、录音（Paraformer ASR）、UTF-8 文本，可一次组合多份。
-- **来源可追溯**：每条内容绑定来源片段与页数 / 时间戳；可查看原文、原始 PDF、定位音频时间；待核对内容显式标注。
-- **类型化知识提取**：声明 / 概念 / 公式 / 实验 / 视觉证据，均保留原文片段与来源 ID。
-- **可修订**：人工编辑 + 对话修订（只重写目标章节）；乐观版本锁；版本历史支持 diff 与恢复。
-- **多格式导出**：Markdown + 图片 ZIP、完整 HTML、PDF、纯 Markdown、逐字稿。
-- **本地优先**：SQLite 持久化任务 / 事件 / 版本；断线重连、取消、重试；本地 KaTeX 渲染，不依赖 CDN。
+## 能做什么
+
+- **混合材料输入**：支持 PDF、DOCX、PPTX、常见图片、UTF-8 文本和录音；一次任务可组合多份材料。
+- **按材料类型生成**：可选择个人笔记、课堂 PPT、论文、教材、习题、会议或自动识别，调整提取和写作路线。
+- **来源可追溯**：正文内容绑定原始片段、页码或音频时间；图片只在与对应内容有关时插入。
+- **结构化知识笔记**：提取概念、主张、公式、实验和视觉证据，生成分层正文、知识卡与复习题。
+- **可编辑与可恢复**：支持手动编辑、章节修订、逐字稿校对、版本 diff 与恢复。
+- **录音处理**：使用 Paraformer 转写；先保存句级时间戳，再合并为可编辑的语义段。
+- **本地导出**：支持 HTML、PDF、Markdown、含图片的 ZIP，以及逐字稿。来源标注可在导出时选择是否保留。
+- **模型路由**：可在界面中给 Cards、Outline、Writer、Vision 和 ASR 分别配置模型；只配置默认模型时，所有非 ASR 步骤自动回退到它。
+
+## 工作方式
+
+```mermaid
+flowchart LR
+  A[上传材料] --> B[解析与规范化]
+  B --> C[来源证据块]
+  C --> D[结构化提取]
+  D --> E[大纲与笔记生成]
+  E --> F[校验、编辑与导出]
+  C --> G[页码 / 时间戳 / 图片定位]
+  G --> F
+```
+
+生成流程以来源证据块为约束：正文、公式、图片和复习题都需要能够追溯到材料。模型返回的可选内容如果不符合结构或引用规则，系统会尝试修复或跳过该模块，避免单个非核心模块阻断整份笔记。
 
 ## 快速开始
 
-Windows 双击 `Nota.cmd`（首次运行会自动创建虚拟环境并安装依赖），浏览器自动打开 http://127.0.0.1:7860 。
+要求：Python **3.11+**、网络连接（首次安装依赖时需要）。浏览器访问地址为 <http://127.0.0.1:7860>。
 
-命令行方式（Python 3.11+）：
+### Windows
+
+双击 `Nota.cmd`。首次运行会调用 `setup.cmd`：它会复用已有 Python；若未安装 Python，则通过 Windows Package Manager（`winget`）安装 Python 3.12，创建虚拟环境并安装依赖。随后浏览器会自动打开。
+
+如果要观察后端日志，请运行 `start.cmd`。
+
+### macOS / Linux
+
+首次在终端执行：
+
+```bash
+chmod +x setup.sh Nota.sh
+./setup.sh
+./Nota.sh
+```
+
+`setup.sh` 会检测 Python 3.11+。缺失时，macOS 会调用 Homebrew；Linux 会调用 apt、dnf 或 pacman。Linux 安装系统软件时需要输入 `sudo` 密码。若 macOS 没有 Homebrew，脚本会给出安装提示。
+
+### 手动启动
+
+适合开发和排错：
+
+```bash
+python -m venv .venv
+# Windows: .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+# macOS / Linux:
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python object/server.py
+```
+
+Windows 上将最后两行替换为：
 
 ```powershell
-python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe object\server.py
 ```
 
-> 开发 / 调试用 `start.cmd`，它会直接在终端运行后端，便于看报错。
+## 配置模型
 
-## 配置
+启动后，在页面右上角打开 **模型设置**。密钥由浏览器提交给本机后端；接口不会把密钥回传给前端，也不会在页面上显示已保存的密钥。
 
-复制 `object/.env.example` 为 `object/.env`，填入密钥：
+通常只需填写一组**默认模型**：模型名称、兼容 OpenAI Chat Completions 的 API URL 和 API Key。Cards、Writer、Vision、Outline 会默认使用它。需要单独配置时，可展开对应角色覆盖默认值。
+
+| 角色 | 用途 | 建议 |
+| --- | --- | --- |
+| Cards | 从材料提取知识卡和证据 | Claude 或 GPT |
+| Outline | 组织结构、审校和规划 | DeepSeek 或默认模型 |
+| Writer | 写出笔记正文 | Claude 或 GPT |
+| Vision | 分析页面、表格、图示与裁剪候选 | Claude 或 GPT 的视觉模型 |
+| ASR | 录音转写 | 阿里云百炼 Paraformer |
+
+ASR 是可选项；上传音频而未配置时，Nota 会在生成前提示配置。当前 ASR 使用 Paraformer 的文件上传与异步转写接口，因此应填写 DashScope API Key 与对应接口地址。
+
+也可以在 `object/.env` 中预置默认值：
 
 ```ini
-# 主模型（OpenAI 兼容接口）
-OPENAI_API_KEY=...
+OPENAI_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com/v1
-GPT_MODEL=...
-VISION_MODEL=...
-CARDS_MODEL=...
-WRITER_MODEL=...
+GPT_MODEL=
 
-# 大纲（结构化 JSON，便宜够用）
-DEEPSEEK_API_KEY=...
+DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 OUTLINE_MODEL=deepseek-chat
 
-# 录音转写（阿里云百炼 Paraformer）
-DASHSCOPE_API_KEY=...
+DASHSCOPE_API_KEY=
 DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
 PARAFORMER_MODEL=paraformer-v2
 ```
 
-模型分工建议：Cards / Writer / Vision 用 Claude 或 GPT，Outline 用 DeepSeek。`object/.env` 已在 `.gitignore` 中，**不要把密钥提交到 Git**。
+`setup.cmd` 和 `setup.sh` 只会在不存在时从 `object/.env.example` 创建该文件，不会覆盖已有配置。
 
-## 使用流程
+## 数据、密钥与隐私
 
-1. 上传材料，每份可选类型（课堂 PPT / 论文 / 教材 / 习题 / 会议材料…）与角色（主要内容 / 补充资料 / 风格参考）。
-2. 选笔记类型（课程笔记 / 考前速记 / 会议纪要 / 总结纪要），设置详略与风格。
-3. 生成；刷新页面可恢复任务，运行中可取消，临时断网自动重连。
-4. 查看来源片段与页数统计，点击来源标签查看原文 / 原始 PDF / 定位音频时间。
-5. 编辑正文或对话修订；版本历史支持差异比较与恢复。
-6. 导出为 ZIP / HTML / PDF / Markdown / 逐字稿。
+- 运行数据、上传文件、导出结果和本机模型路由配置都保存在 `object/data/`，该目录已被 Git 忽略。
+- `object/.env` 同样已被 Git 忽略；请不要提交真实 API Key、录音或私有学习材料。
+- 浏览器不会读取或显示保存后的 API Key。模型路由设置仅保存在本机后端的数据目录中。
+- 发送给模型服务商的内容取决于任务：文本与结构化片段会发送给文本模型；需要视觉理解时会发送对应页面或图像；录音会发送给所配置的 ASR 服务。
 
-## 架构
+## 项目结构
 
-```
+```text
 object/
-  server.py       FastAPI 接口
-  storage.py      SQLite 文件、任务、事件、版本
-  engine.py       缓存、模型调用、回退、取消、统计
-  extraction.py   原生解析（PDF/PPTX/DOCX）+ 按需视觉
-  generation.py   知识 IR、跨批次归一、规划、写作与审校
-  service.py      生成/修订/导出共用服务
-  rendering.py    安全预览与导出
-  pdf_renderer.py 受限数学命令的 TeX 排版
-  asr.py          录音上传与识别（Paraformer）
-  static/         浏览器界面（本地 KaTeX）
-  data/           运行时数据（SQLite/uploads/cache/artifacts，已 gitignore）
+  server.py          FastAPI 服务与本地 API
+  materials.py       上传、材料识别与解析入口
+  extraction.py      来源证据块、图片与公式提取
+  notes_pipeline.py  笔记生成与校验流程
+  generation.py      模型调用与结构化内容生成
+  asr.py             Paraformer 转写与语义段合并
+  router.py          本机模型路由配置
+  export.py          HTML / PDF / Markdown 导出
+  static/            单页前端与本地 KaTeX 资源
+tests/               自动化测试
+evals/               离线质量评测案例与基线工具
+setup.cmd/.sh        首次安装脚本
+Nota.cmd/.sh         快速启动脚本
 ```
 
-## 测试
+## 测试与评测
+
+安装开发依赖后运行：
+
+```bash
+# Windows: .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+# macOS / Linux:
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest
+```
+
+Windows：
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-常规自动化测试不调用付费 API。离线质量评测见 [`evals/`](evals/README.md)：黄金案例 + 可复现检查，不含密钥、不要求在线模型。
+离线评测案例和使用方法位于 [evals/README.md](evals/README.md)。评测不包含密钥和私人材料。
 
-## 导出
+## 常见问题
 
-- **ZIP**：标准 Markdown + 相对路径图片
-- **HTML**：完整网页，内嵌图片 / 公式 / 字体
-- **PDF**：优先 Pandoc + XeLaTeX；无 Pandoc 时用内置 Markdown→TeX 渲染器
-- **Markdown**：纯文本
-- **逐字稿**：录音转写结果
+**双击 Nota 后没有打开页面**
 
-## 已知边界
+先运行 `start.cmd`（macOS/Linux 则运行 `.venv/bin/python object/server.py`）查看实际错误。常见原因是虚拟环境失效、端口 7860 被其他程序占用，或首次依赖安装尚未完成。
 
-- 引用覆盖率表示「来源 / 卡片有分配」，不是语义正确率；审校可能误判，应回看来源。
-- 旧二进制 `.doc` / `.ppt` 需本机 Microsoft Office + `requirements-office.txt` 中的可选依赖。
-- 取消是协作式的：当前网络请求 / 排版子进程可能要返回或超时才结束。
-- 无账号系统、分布式部署或向量数据库；是单人本地应用，不应直接暴露公网。
+**上传录音后提示未配置 ASR**
 
-## 隐私
+在“模型设置”填写 DashScope 的 API Key、API URL 和 Paraformer 模型名后重新提交。
 
-调用模型服务会把所选材料发送给对应服务商并消耗额度。应用本身不记录 API 密钥，也不向除你配置的模型服务商以外的第三方泄露本地数据。
+**模型调用失败或生成不稳定**
+
+检查模型名称、API URL、余额和网关是否支持 OpenAI Chat Completions。复杂论文、PPT 图表和手写材料建议为 Vision 和 Writer 配置能力更强的模型；Outline 可单独使用成本较低的模型。
+
+**导出 PDF 较慢**
+
+PDF 会等待 HTML 渲染、公式排版和本地图片处理完成。可先导出 HTML 预览；不需要来源标注时，在导出选项中关闭它以减少版面内容。

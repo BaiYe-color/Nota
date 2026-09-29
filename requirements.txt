@@ -10,4 +10,3 @@ requests>=2.32,<3
 Markdown>=3.7,<4
 bleach>=6.2,<7
 pillow>=10,<13
-langgraph>=0.2,<2
