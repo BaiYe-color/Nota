@@ -2,6 +2,7 @@
 Only application-generated TeX plus allowlisted math reaches XeLaTeX.
 """
 import html
+import os
 import re
 import shutil
 import subprocess
@@ -9,6 +10,9 @@ import tempfile
 from html.parser import HTMLParser
 from pathlib import Path
 import markdown
+
+def cjk_font():
+    return os.getenv('NOTA_CJK_FONT') or ('Microsoft YaHei' if os.name == 'nt' else 'Noto Sans CJK SC')
 
 class Tree(HTMLParser):
     def __init__(self):
@@ -79,8 +83,8 @@ def latex_document(text,assets):
 \usepackage[margin=2cm]{geometry}
 \usepackage{fontspec,xeCJK,amsmath,amssymb,graphicx,longtable,array}
 \setmainfont{TeX Gyre Termes}
-\setCJKmainfont{Microsoft YaHei}
-\setCJKmonofont{Microsoft YaHei}
+\setCJKmainfont{'''+cjk_font()+r'''}
+\setCJKmonofont{'''+cjk_font()+r'''}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{5pt}
 \sloppy

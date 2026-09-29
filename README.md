@@ -120,6 +120,8 @@ PARAFORMER_MODEL=paraformer-v2
 
 服务器建议从 4 核 CPU、8 GB 内存、80 GB SSD 起步；模型推理与转写使用外部 API，不需要 GPU。
 
+Docker 镜像内置 XeLaTeX、Pandoc 与 Noto 中文字体，因此服务器也可导出包含数学公式的 PDF。首次构建会额外下载约 1--2 GB 的排版依赖，完成后会被 Docker 缓存。
+
 ```bash
 git clone https://github.com/BaiYe-color/Nota.git
 cd Nota

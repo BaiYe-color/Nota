@@ -1,6 +1,7 @@
 """Sanitized rich preview and immutable export artifacts."""
 import base64
 import html
+import os
 import re
 import zipfile
 from pathlib import Path
@@ -8,6 +9,9 @@ import bleach
 import markdown
 
 TAGS=set(bleach.sanitizer.ALLOWED_TAGS)|{'p','h1','h2','h3','h4','pre','code','blockquote','hr','br','table','thead','tbody','tr','th','td','del'}
+
+def cjk_font():
+    return os.getenv('NOTA_CJK_FONT') or ('Microsoft YaHei' if os.name == 'nt' else 'Noto Sans CJK SC')
 
 def safe_html(text,preserve_internal_tokens=False):
     # Internal placement tokens are a transport detail. Only the structured
@@ -210,7 +214,7 @@ def export_note(store,note,format,include_sources=False):
                         text=text.replace('images/'+b['asset'],(root/b['asset']).as_posix())
                 md=tmp/'notes.md';md.write_text(text,encoding='utf-8')
                 result=subprocess.run([pandoc,str(md),'-f','markdown-raw_tex-raw_html-tex_math_single_backslash-tex_math_double_backslash','--pdf-engine=xelatex','--pdf-engine-opt=-no-shell-escape',
-                    '-V','CJKmainfont=Microsoft YaHei','-V','papersize:a4','-V','geometry:margin=2cm',
+                    '-V','CJKmainfont='+cjk_font(),'-V','papersize:a4','-V','geometry:margin=2cm',
                     '-V',r'header-includes=\usepackage{graphicx,float}\floatplacement{figure}{htbp}\setkeys{Gin}{width=0.78\linewidth,height=0.40\textheight,keepaspectratio}',
                     '-o',str(path)],cwd=tmp,capture_output=True,timeout=180)
                 if result.returncode:

@@ -4,6 +4,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        pandoc \
+        texlive-xetex \
+        texlive-lang-chinese \
+        fonts-noto-core \
+        fonts-noto-cjk \
+    && fc-cache -f \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY requirements.txt ./
 ARG PIP_PRIMARY_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
