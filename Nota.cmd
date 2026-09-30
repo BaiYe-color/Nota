@@ -1,7 +1,12 @@
 @echo off
-setlocal
+setlocal EnableExtensions
 cd /d "%~dp0"
 set "NOTA_URL=http://127.0.0.1:7860/"
+set "LOG_DIR=%~dp0runtime"
+set "OUT_LOG=%LOG_DIR%\nota.stdout.log"
+set "ERR_LOG=%LOG_DIR%\nota.stderr.log"
+
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 set "NEED_SETUP=0"
 if not exist ".venv\Scripts\python.exe" set "NEED_SETUP=1"
@@ -12,26 +17,24 @@ if "%NEED_SETUP%"=="1" (
   if errorlevel 1 exit /b 1
 )
 
-rem If the service is already responding, just open the browser.
-powershell -NoProfile -Command "try{$c=New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1',7860); $c.Close(); exit 0}catch{exit 1}"
+rem Reuse a healthy service instead of starting another copy.
+powershell -NoProfile -Command "try{$r=Invoke-WebRequest -UseBasicParsing '%NOTA_URL%api/health' -TimeoutSec 2;if($r.StatusCode -eq 200){exit 0};exit 1}catch{exit 1}"
 if not errorlevel 1 goto :open
 
-rem Clear any stale process still holding port 7860 so a fresh one can bind.
-powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 7860 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
+rem Launch independently from this command window and retain diagnostic logs.
+wscript.exe //B "%~dp0launch-nota.vbs"
+if errorlevel 1 goto :failed
 
-rem Start the service in the background, sharing this console's handles.
-rem The /b flag is required: without it pythonw.exe gets no valid stderr
-rem handle and uvicorn crashes immediately (silently, since it has no window).
-start "" /b ".venv\Scripts\pythonw.exe" "object\server.py"
-
-rem Wait up to 20 seconds, polling fast from a single process.
-powershell -NoProfile -Command "$d=(Get-Date).AddSeconds(20); while((Get-Date) -lt $d){ try{$c=New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1',7860); $c.Close(); exit 0}catch{Start-Sleep -Milliseconds 300} }; exit 1"
+rem Wait for the HTTP health endpoint, not merely an occupied port.
+powershell -NoProfile -Command "$d=(Get-Date).AddSeconds(20);while((Get-Date) -lt $d){try{$r=Invoke-WebRequest -UseBasicParsing '%NOTA_URL%api/health' -TimeoutSec 2;if($r.StatusCode -eq 200){exit 0}}catch{};Start-Sleep -Milliseconds 300};exit 1"
 if not errorlevel 1 goto :open
 
+:failed
 echo.
-echo Nota service did not start within 20 seconds.
-echo Run start.cmd in a terminal to see the actual error.
+echo Nota service did not start. Recent error output:
+powershell -NoProfile -Command "if(Test-Path '%ERR_LOG%'){Get-Content -LiteralPath '%ERR_LOG%' -Tail 30}else{Write-Output 'No log file was created.'}"
 echo.
+echo You can also run start.cmd to view the service output directly.
 pause
 exit /b 1
 

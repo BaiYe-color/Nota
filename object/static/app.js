@@ -30,14 +30,16 @@ for(const event of ['dragenter','dragover'])$('dropzone').addEventListener(event
 for(const event of ['dragleave','drop'])$('dropzone').addEventListener(event,e=>{e.preventDefault();$('dropzone').classList.remove('over');});
 $('dropzone').ondrop=e=>{e.preventDefault();addFiles([...e.dataTransfer.files]);};
 $('save-preferences').onclick=()=>guard(async()=>{await api('/api/preferences','PUT',options());status('已保存默认偏好');});
-$('generate').onclick=()=>guard(async()=>{
+async function startGeneration(){
  if(!selected.length)throw new Error('请先选择材料');
  if(selected.some(item=>/\.(wav|mp3|m4a|flac|aac|ogg|opus|wma)$/i.test(item.file.name))&&!modelSettingsState?.asr?.configured){alert('检测到录音材料，但尚未配置 ASR。请在模型设置中填写音频转写 API Key。');await openModelSettings();return;}
  if(dirty&&!confirm('有尚未保存的编辑，继续会关闭编辑区。'))return;
  $('generate').disabled=true;status('上传材料…');
  try{const form=new FormData();selected.forEach(item=>form.append('files',item.file));const res=await fetch('/api/upload',{method:'POST',body:form});const data=await res.json();if(!res.ok)throw new Error(data.detail||'上传失败');const fileIds=data.files.map(f=>f.id);const materials=data.files.map((f,i)=>({file_id:f.id,source_type:selected[i].sourceType,role:selected[i].role}));const job=await api('/api/generate','POST',{file_ids:fileIds,materials,options:options()});watch(job.job_id);}
  catch(e){$('generate').disabled=false;throw e;}
-});
+}
+$('generate').onclick=()=>guard(async()=>{if(!selected.length)throw new Error('请先选择材料');$('generation-warning').showModal();});
+$('generation-warning-confirm').onclick=()=>{ $('generation-warning').close(); guard(startGeneration); };
 function log(text){logs.push(text);logs=logs.slice(-100);$('logs').textContent=logs.join('\n');}
 function watch(id,after=0){
  if(stream)stream.close();activeJob=id;cursor=after;localStorage.setItem('nota-job',id);localStorage.setItem('nota-cursor',String(after));
