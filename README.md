@@ -79,10 +79,15 @@ Windows 上将最后两行替换为：
 
 通常只需填写一组**默认模型**：模型名称、兼容 OpenAI Chat Completions 的 API URL 和 API Key。Cards、Writer、Vision、Outline 会默认使用它。需要单独配置时，可展开对应角色覆盖默认值。
 
+> **强烈建议默认模型使用 Claude 或 GPT。** 默认模型承担 Cards、Writer 和 Vision 等核心步骤，直接影响材料理解、证据提取、正文质量与复杂图文解析的稳定性。请优先选择能力较强、支持所需视觉能力的 Claude 或 GPT 模型，不建议将低成本模型作为默认模型。
+>
+> **Outline 可以单独使用更便宜的模型，例如 DeepSeek。** Outline 主要负责大纲组织、章节规划和审校；将它单独路由到 DeepSeek 等低成本模型，通常能在不显著影响整体质量的前提下节省调用成本。
+
 | 角色 | 用途 | 建议 |
 | --- | --- | --- |
+| 默认模型 | Cards、Writer、Vision 等核心步骤的兜底 | **强烈建议 Claude 或 GPT** |
 | Cards | 从材料提取知识卡和证据 | Claude 或 GPT |
-| Outline | 组织结构、审校和规划 | DeepSeek 或默认模型 |
+| Outline | 组织结构、审校和规划 | 单独配置 DeepSeek 等低成本模型 |
 | Writer | 写出笔记正文 | Claude 或 GPT |
 | Vision | 分析页面、表格、图示与裁剪候选 | Claude 或 GPT 的视觉模型 |
 | ASR | 录音转写 | 阿里云百炼 Paraformer |
