@@ -83,6 +83,18 @@ def test_same_filename_different_content_isolated(client):
     assert client.get('/api/files/'+b).content.startswith(b'Beta')
     assert upload(client,content=b'Alpha document with original contents')==a
 
+def test_missing_upload_is_reported_and_reupload_repairs_copy(client):
+    content=b'Important definition: an index maps terms to documents.'
+    fid=upload(client,'lesson.txt',content)
+    path=Path(client.app.state.store.file(fid)['path'])
+    path.unlink()
+    missing=client.post('/api/generate',json={'file_ids':[fid],'options':{}})
+    assert missing.status_code==400
+    assert '原始文件已不存在，请重新上传' in missing.json()['detail']
+    assert client.get('/api/files/'+fid).status_code==410
+    assert upload(client,'lesson.txt',content)==fid
+    assert path.read_bytes()==content
+
 @pytest.mark.parametrize('name',['../evil.txt','..\\evil.txt','C:evil.txt','evil.html','evil.exe'])
 def test_unsafe_upload_rejected(client,name):
     assert client.post('/api/upload',files={'files':(name,b'data')}).status_code==400
@@ -127,6 +139,38 @@ def test_cache_version_options_and_failure(tmp_path):
 def test_restart_recovery(tmp_path):
     a=Store(tmp_path);jid=a.new_job('generate',{});a.set_job(jid,'running')
     b=Store(tmp_path);b.recover();assert b.job(jid)['status']=='interrupted'
+
+def test_recent_notes_keep_latest_ten_and_return_latest_versions(client):
+    store = client.app.state.store
+    ids = []
+    for index in range(11):
+        nid = store.create_note(f'job-{index}', {'title': f'笔记 {index}'})
+        ids.append(nid)
+        time.sleep(.002)
+    store.save_revision(ids[0], 1, {'title': '笔记 0（更新版）'}, '编辑')
+
+    response = client.get('/api/notes?limit=99')
+    assert response.status_code == 200
+    notes = response.json()
+    assert len(notes) == 10
+    assert notes[0]['id'] == ids[0]
+    assert notes[0]['title'] == '笔记 0（更新版）'
+    assert notes[0]['version'] == 2
+    assert ids[1] not in {note['id'] for note in notes}
+
+
+def test_delete_note_removes_its_history_but_keeps_other_notes(client):
+    store = client.app.state.store
+    first = store.create_note('job-first', {'title': '保留的笔记'})
+    removed = store.create_note('job-removed', {'title': '将删除的笔记'})
+    store.save_revision(removed, 1, {'title': '将删除的笔记 v2'}, '编辑')
+
+    response = client.delete(f'/api/notes/{removed}')
+    assert response.status_code == 200
+    assert client.get(f'/api/notes/{removed}').status_code == 404
+    assert [note['id'] for note in client.get('/api/notes').json()] == [first]
+    assert client.delete(f'/api/notes/{removed}').status_code == 404
+
 
 def test_atomic_revision_conflict(tmp_path):
     from concurrent.futures import ThreadPoolExecutor
@@ -212,9 +256,11 @@ def test_retry_can_skip_review_questions(client,monkeypatch):
     result=client.post('/api/jobs/'+jid+'/retry',json={'skip_review_questions':True})
     assert result.status_code==200 and result.json()['job_id']=='replacement'
     assert captured['kind']=='generate' and captured['payload']['options']['include_review_questions'] is False
+    assert captured['payload']['_resume_from']==jid
     result=client.post('/api/jobs/'+jid+'/retry',json={'degraded_mode':True})
     assert result.status_code==200 and captured['payload']['options']['degraded_mode'] is True
     assert captured['payload']['options']['include_images'] is False
+    assert '_resume_from' not in captured['payload']
 
 def test_transcript_only_no_writer(client,monkeypatch):
     import extraction

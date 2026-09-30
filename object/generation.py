@@ -707,13 +707,18 @@ def write_chapter(ctx,ch,cards,blocks,options,instruction=None,previous=None,con
             'issues':issues,'status':'ready','edited':bool(instruction),
             'conversation':(conversation or [])+([{'instruction':instruction}] if instruction else [])}
 
-def generate(ctx,blocks,options):
-    if blocks and (options.handwritten or all(b.get('material_type')=='lecture_slides' for b in blocks)):
-        from learning import generate_slides
-        return generate_slides(ctx,blocks,options)
+def prepare_generation(ctx,blocks):
+    """Build reusable knowledge IR before chapter drafting."""
     cards,knowledge=make_knowledge(ctx,blocks)
     ctx.progress(.63,'建立全局概念关系')
     knowledge=build_concept_graph(ctx,knowledge)
+    return cards,knowledge
+
+def generate(ctx,blocks,options,prepared=None):
+    if blocks and (options.handwritten or all(b.get('material_type')=='lecture_slides' for b in blocks)):
+        from learning import generate_slides
+        return generate_slides(ctx,blocks,options)
+    cards,knowledge=prepared or prepare_generation(ctx,blocks)
     ctx.progress(.64,'安排章节并检查知识覆盖')
     content_cards=[c for c in cards if c['importance']>1]
     if not content_cards: content_cards=cards

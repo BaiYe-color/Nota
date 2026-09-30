@@ -1,11 +1,12 @@
 """One application service for web, CLI, retries and revisions."""
 import copy
+import json
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from contracts import Options
-from engine import Context,Cancelled,atomic_json,MODELS,PIPELINE_VERSION
+from engine import Context,Cancelled,atomic_json,digest,MODELS,PIPELINE_VERSION
 from extraction import extract,AUDIO
 from generation import generate,quality,write_chapter
 from materials import resolve_materials,apply_materials,style_sample
@@ -28,6 +29,32 @@ class Service:
             self.pool.submit(self.run,jid)
             return jid
 
+    def _checkpoint_path(self,jid):
+        return self.store.root/'artifacts'/f'{jid}-checkpoint.json'
+
+    def _checkpoint_inputs(self,files,payload,options):
+        return {'pipeline':PIPELINE_VERSION,
+                'files':[{'id':file['id'],'sha':file['sha']} for file in files],
+                'materials':payload.get('materials',[]),
+                'extraction':{'handwritten':options.handwritten,'include_images':options.include_images,
+                              'visual_mode':options.visual_mode,'max_pages':options.max_pages}}
+
+    def _save_checkpoint(self,jid,inputs,phase,**data):
+        atomic_json(self._checkpoint_path(jid),{'version':1,'inputs':digest(inputs),'phase':phase,**data})
+
+    def _load_checkpoint(self,payload,inputs):
+        source=payload.get('_resume_from')
+        if not source or not isinstance(source,str): return None
+        path=self._checkpoint_path(source)
+        try:
+            data=json.loads(path.read_text(encoding='utf-8'))
+        except (OSError,ValueError):
+            return None
+        if data.get('version')!=1 or data.get('inputs')!=digest(inputs): return None
+        if data.get('phase') not in ('parsed','knowledge'): return None
+        if not isinstance(data.get('sources'),list) or not isinstance(data.get('counts'),list): return None
+        return data
+
     def run(self,jid):
         ctx=None
         try:
@@ -37,6 +64,9 @@ class Service:
             ctx.check(); self.store.set_job(jid,'running')
             if job['kind']=='generate':
                 files=[self.store.file(fid) for fid in payload['file_ids']]
+                missing=[file['name'] for file in files if not Path(file['path']).is_file()]
+                if missing:
+                    raise ValueError('原始文件已不存在，请重新上传后再生成：'+ '、'.join(missing))
                 options=Options.model_validate(payload['options'])
                 materials=resolve_materials(files,payload.get('materials',[]),options)
                 enriched=apply_materials(files,materials)
@@ -51,13 +81,31 @@ class Service:
                 if style_parts and len(options.style)<2000:
                     addition='\n\n'.join(style_parts)
                     options=options.model_copy(update={'style':(options.style+'\n\n'+addition).strip()[:2000]})
-                sources,counts=extract(ctx,content_files,options)
-                for item in materials:
-                    if item['role']=='style_reference':
-                        counts.append({'document':item['name'],'total':1,'processed':1,'unit':'风格参考'})
+                checkpoint_inputs=self._checkpoint_inputs(files,payload,options)
+                checkpoint=self._load_checkpoint(payload,checkpoint_inputs)
+                if checkpoint:
+                    sources,counts=checkpoint['sources'],checkpoint['counts']
+                    ctx.progress(.45,'已从'+('知识提取' if checkpoint['phase']=='knowledge' else '解析')+'检查点恢复')
+                else:
+                    sources,counts=extract(ctx,content_files,options)
+                    for item in materials:
+                        if item['role']=='style_reference':
+                            counts.append({'document':item['name'],'total':1,'processed':1,'unit':'风格参考'})
+                    self._save_checkpoint(jid,checkpoint_inputs,'parsed',sources=sources,counts=counts)
                 transcript='\n\n'.join(f"[{b['start_ms']//60000:02d}:{b['start_ms']//1000%60:02d}] {b['text']}" for b in sources if b['kind']=='audio')
-                if options.output_form=='transcript': cards,knowledge,chapters=[],{},[]
-                else: cards,knowledge,chapters=generate(ctx,sources,options)
+                special_generation=bool(sources) and (options.handwritten or all(b.get('material_type')=='lecture_slides' for b in sources))
+                if options.output_form=='transcript':
+                    cards,knowledge,chapters=[],{},[]
+                elif checkpoint and checkpoint['phase']=='knowledge' and not special_generation:
+                    cards,knowledge=checkpoint['cards'],checkpoint['knowledge']
+                    cards,knowledge,chapters=generate(ctx,sources,options,prepared=(cards,knowledge))
+                elif special_generation:
+                    cards,knowledge,chapters=generate(ctx,sources,options)
+                else:
+                    from generation import prepare_generation
+                    cards,knowledge=prepare_generation(ctx,sources)
+                    self._save_checkpoint(jid,checkpoint_inputs,'knowledge',sources=sources,counts=counts,cards=cards,knowledge=knowledge)
+                    cards,knowledge,chapters=generate(ctx,sources,options,prepared=(cards,knowledge))
                 if chapters and not any(ch['status']=='ready' for ch in chapters):
                     raise RuntimeError('全部章节生成失败；已保留解析和卡片缓存，可重试')
                 title_file=next((file for file in content_files if file['material_role']=='primary'),content_files[0])
@@ -139,6 +187,8 @@ class Service:
         if job['status'] not in ('failed','partial','cancelled','interrupted'):
             raise ValueError('只能重试失败、中断、取消或部分完成的任务')
         payload=copy.deepcopy(job['payload'])
+        if job['kind']=='generate' and not degraded_mode:
+            payload['_resume_from']=jid
         if skip_review_questions:
             if job['kind']!='generate': raise ValueError('跳过复习问题只适用于笔记生成任务')
             payload.setdefault('options',{})['include_review_questions']=False

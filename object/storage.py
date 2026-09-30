@@ -162,6 +162,32 @@ class Store:
         with self.connect() as c:
             return [dict(r) for r in c.execute('SELECT version,reason,created FROM revisions WHERE note_id=? ORDER BY version DESC',(nid,))]
 
+    def recent_notes(self, limit=10):
+        # Return latest revisions so the sidebar can reopen exportable notes.
+        limit = max(1, min(int(limit), 10))
+        with self.connect() as c:
+            rows = c.execute('''
+                SELECT n.id, n.job_id, n.version, r.data, r.created
+                FROM notes AS n
+                JOIN revisions AS r ON r.note_id=n.id AND r.version=n.version
+                ORDER BY r.created DESC
+                LIMIT ?
+            ''', (limit,)).fetchall()
+        notes = []
+        for row in rows:
+            data = json.loads(row['data'])
+            notes.append({'id':row['id'],'job_id':row['job_id'],'version':row['version'],
+                          'title':data.get('title') or '未命名笔记','updated':row['created']})
+        return notes
+
+    def delete_note(self, nid):
+        with self.connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            deleted = c.execute('DELETE FROM notes WHERE id=?', (nid,)).rowcount
+            if not deleted:
+                raise KeyError('笔记不存在')
+            c.execute('DELETE FROM revisions WHERE note_id=?', (nid,))
+
     def preferences(self, data=None):
         with self.connect() as c:
             if data is not None:

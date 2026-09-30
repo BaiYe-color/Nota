@@ -111,6 +111,11 @@ def create_app(data_root=None):
                         # Concurrent identical uploads can race at the unique index.
                         store.file(fid)
                     saved=store.file(fid)
+                else:
+                    # Metadata can outlive a manually removed or interrupted upload.
+                    # Re-uploading the same content must repair that missing local copy.
+                    if not target.is_file():
+                        os.replace(tmp,target)
                 uploaded.append({'id':fid,'name':saved['name'],'size':size})
             finally:
                 tmp.unlink(missing_ok=True); await f.close()
@@ -120,6 +125,9 @@ def create_app(data_root=None):
     def generate(request:GenerateRequest):
         if len(set(request.file_ids))!=len(request.file_ids): raise ValueError('请移除重复文件')
         files=[store.file(fid) for fid in request.file_ids]
+        missing=[file['name'] for file in files if not Path(file['path']).is_file()]
+        if missing:
+            raise ValueError('原始文件已不存在，请重新上传后再生成：'+ '、'.join(missing))
         roles={item.file_id:item.role for item in request.materials}
         content_files=[file for file in files if roles.get(file['id'],'primary')!='style_reference']
         if request.options.output_form=='transcript' and any(Path(f['path']).suffix not in AUDIO for f in content_files):
@@ -161,6 +169,7 @@ def create_app(data_root=None):
     def original(fid:str):
         f=store.file(fid); path=Path(f['path']).resolve()
         if not path.is_relative_to(store.root/'uploads'): raise HTTPException(400,'文件路径无效')
+        if not path.is_file(): raise HTTPException(410,'原始文件已不存在，请重新上传该文件')
         return FileResponse(path,filename=f['name'],content_disposition_type='inline')
 
     @app.get('/api/artifacts/{name}')
@@ -169,6 +178,15 @@ def create_app(data_root=None):
         path=(store.root/'artifacts'/name).resolve()
         if not path.is_relative_to(store.root/'artifacts') or not path.is_file(): raise HTTPException(404,'产物不存在')
         return FileResponse(path,filename=name,content_disposition_type='inline' if path.suffix=='.png' else 'attachment')
+
+    @app.get('/api/notes')
+    def recent_notes(limit:int=10):
+        return store.recent_notes(limit)
+
+    @app.delete('/api/notes/{nid}')
+    def delete_note(nid:str):
+        store.delete_note(nid)
+        return {'ok':True}
 
     @app.get('/api/notes/{nid}')
     def note(nid:str,version:int|None=None):
